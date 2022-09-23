@@ -11,6 +11,7 @@ import {
 import { DiscordService } from 'src/discord/discord.service';
 import * as request from 'request';
 import { Client, TextChannel } from 'discord.js';
+import { Request, Response } from 'express';
 
 type Command = {
   text?: string;
@@ -38,10 +39,12 @@ export class WebConsoleController {
         const channelName = args[0];
         const msg = args[1];
 
-        const channel = this.client.guilds.cache.flatMap((guild) =>
-          guild.channels.cache.filter(
-            (channel) => channel.name === channelName,
-          ),
+        const channel = (
+          this.client.guilds.cache.flatMap((guild) =>
+            guild.channels.cache.filter(
+              (channel) => channel.name === channelName,
+            ),
+          ) as any
         )[0];
 
         if (channel == null)
@@ -69,7 +72,7 @@ export class WebConsoleController {
   }
 
   @Get('/login')
-  login(@Req() req, @Res() res): void {
+  login(@Req() req: Request, @Res() res: Response): void {
     const oauthUrl = `https://discordapp.com/api/oauth2/authorize?client_id=436936230660210689&redirect_uri=${process.env.DC_REDIRECT}&response_type=code&scope=identify%20guilds`;
     if (req.query.code) {
       res.redirect(`${process.env.FRONTEND_URL}?code=${req.query.code}`);
@@ -79,7 +82,7 @@ export class WebConsoleController {
   }
 
   @Get('/accessToken')
-  getAccessTokengrant(@Req() req, @Res() res): void {
+  getAccessTokengrant(@Req() req: Request, @Res() res: Response): void {
     if (!req.query.code) throw new BadRequestException('Code is not set!');
 
     const code = req.query.code;
@@ -95,10 +98,10 @@ export class WebConsoleController {
       redirect_uri: process.env.DC_REDIRECT,
       scope: 'identify%20guilds',
     };
-    const dataEncoded = [];
-    for (const k in data) {
-      dataEncoded.push(`${k}=${data[k]}`);
-    }
+    const dataEncoded: string[] = [];
+    Object.entries(data).forEach(([k, val]) => {
+      dataEncoded.push(`${k}=${val}`);
+    });
 
     const headers = {
       'Content-Type': 'application/x-www-form-urlencoded',

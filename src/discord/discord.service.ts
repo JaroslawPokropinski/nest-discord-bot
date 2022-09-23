@@ -1,11 +1,21 @@
 import { Injectable, Scope } from '@nestjs/common';
 import * as Discord from 'discord.js';
-import { ActivityType, Client, GatewayIntentBits } from 'discord.js';
-
-// const HOUR_IN_SEC = 60 * 60;
+import {
+  ActivityType,
+  Client,
+  GatewayIntentBits,
+  REST,
+  Routes,
+  SlashCommandBuilder,
+  SlashCommandStringOption,
+} from 'discord.js';
 
 @Injectable({ scope: Scope.DEFAULT })
 export class DiscordService {
+  private clientId = process.env.DC_APP_ID!;
+  private token = process.env.DC_TOKEN!;
+  private guildsToUpdate: string[] = JSON.parse(process.env.GUILD_IDS!);
+  rest = new REST({ version: '10' }).setToken(this.token);
   client: Client = new Client({
     intents: [
       GatewayIntentBits.Guilds,
@@ -15,45 +25,33 @@ export class DiscordService {
     presence: {
       activities: [
         {
-          name: `commands on ${this.getPrefix()}`,
+          name: `you ❤️`,
           type: ActivityType.Listening,
         },
       ],
     },
   });
-  commands: Array<[string, string?, string?]> = [];
+  commands: Pick<SlashCommandBuilder, 'toJSON'>[] = [];
+  commandHandlers: Record<
+    string,
+    (
+      interaction: Discord.ChatInputCommandInteraction<Discord.CacheType>,
+    ) => void
+  > = {};
+
   constructor() {
     this.client.on('ready', () => console.log('I am ready!'));
-
-    this.client.on('message', (msg) => {
-      if (msg.author.bot) return;
-
-      if (
-        msg.content === `${this.getPrefix()}h` ||
-        msg.content === `${this.getPrefix()}help`
-      ) {
-        const text = this.commands
-          .map(
-            (v) =>
-              (v[1] ? `command: ${v[1]}` : `command: ${v[0]}`) +
-              (v[2] ? ` info: ${v[2]}\n` : '\n'),
-          )
-          .reduce((prev, curr) => prev + curr);
-        msg.channel.send(`\`\`\`${text}\`\`\``);
-      }
-    });
 
     this.client.on('error', (err) => {
       console.error(err);
     });
 
     this.client
-      .login(process.env.DC_TOKEN)
+      .login(this.token)
       .then(async () => {
         if (this.client.user == null)
           throw new Error("Client's user cannot be null");
         console.log(`Logged in as ${this.client.user?.tag}!`);
-        console.log(`Listening on prefix: ${this.getPrefix()}`);
 
         process.on('SIGINT', () => {
           console.log('Destroying client...');
@@ -61,56 +59,9 @@ export class DiscordService {
           process.exit();
         });
 
-        // const client = this.client as any;
-        const slashGuilds: Array<string> = JSON.parse(process.env.GUILD_IDS);
-        const data: Discord.ApplicationCommandData = {
-          name: 'echo',
-          description: 'Echoes your text on a screen',
-          options: [
-            {
-              name: 'content',
-              description: 'Content for an echo',
-              required: true,
-              type: 3,
-            },
-          ],
-        };
+        this.initEchoCommand();
 
-        const leaveData: Discord.ApplicationCommandData = {
-          name: 'leave',
-          description: 'Leave voice channel',
-        };
-        // slashGuilds.forEach((gid) => {
-        //   this.client.guilds.cache.get(gid)?.commands.create(data);
-        //   this.client.guilds.cache.get(gid)?.commands.create(leaveData);
-        // });
-
-        this.client.on(
-          'interaction',
-          async (interaction: Discord.Interaction) => {
-            if (!interaction.isCommand()) return;
-            if (interaction.commandName === 'echo') {
-              const ch = await interaction.channel;
-              if (!ch.isTextBased()) return;
-
-              const text = (interaction.options?.[0].value as string) ?? '';
-
-              await ch.send(text);
-              await interaction.reply({ content: 'Done', ephemeral: true });
-            }
-
-            // todo: fix
-            // if (interaction.commandName === 'leave') {
-            //   const ch = await interaction.channel;
-            //   if (!ch.isTextBased()) return;
-
-            //   (
-            //     interaction.member as Discord.GuildMember
-            //   )?.voice.channel. leave();
-            //   await interaction.reply('Left', { ephemeral: true });
-            // }
-          },
-        );
+        await this.reloadSlashCommands();
       })
       .catch((err) => {
         console.error('Got an error:', err);
@@ -118,12 +69,64 @@ export class DiscordService {
       });
   }
 
-  getClient(): Discord.Client {
-    return this.client;
+  private async reloadSlashCommands() {
+    console.log(
+      `Started refreshing ${this.commands.length} application (/) commands.`,
+    );
+
+    const promises = this.guildsToUpdate.map((guildToUpdate) => {
+      return this.rest.put(
+        Routes.applicationGuildCommands(this.clientId, guildToUpdate),
+        {
+          body: this.commands.map((command) => command.toJSON()),
+        },
+      );
+    });
+
+    await Promise.all(promises)
+      .then(() =>
+        console.log(`Successfully registered application (/) commands.`),
+      )
+      .catch(console.error);
+
+    this.client.on('interactionCreate', async (interaction) => {
+      if (!interaction.isChatInputCommand()) return;
+
+      this.commandHandlers[interaction.commandName]?.(interaction);
+    });
   }
 
-  getPrefix(): string {
-    return process.env.BOT_PREFIX;
+  initEchoCommand() {
+    this.subscribeSlash(
+      new SlashCommandBuilder()
+        .setName('echo')
+        .setDescription('Echoes your text on a screen')
+        .addStringOption(
+          new SlashCommandStringOption()
+            .setName('content')
+            .setDescription('Content for an echo')
+            .setRequired(true),
+        ),
+      async (interaction) => {
+        const ch = interaction.channel;
+        if (!ch || !ch.isTextBased()) {
+          await interaction.reply({
+            content: 'Oh nio! you need to be in a text channew.',
+            ephemeral: true,
+          });
+          return;
+        }
+
+        const text = interaction.options.getString('content') ?? '';
+
+        await ch.send(text);
+        await interaction.reply({ content: 'Done', ephemeral: true });
+      },
+    );
+  }
+
+  getClient() {
+    return this.client;
   }
 
   subscribe(
@@ -132,33 +135,16 @@ export class DiscordService {
     usage?: string,
     info?: string,
   ) {
-    const regex = new RegExp(`\\${this.getPrefix()}${cmd}`);
-    this.commands.push([cmd, usage, info]);
-
-    this.client.on('message', (msg) => {
-      if (msg.author.bot) return;
-
-      if (regex.test(msg.content)) {
-        callback(msg);
-      }
-    });
+    console.debug('depreciated');
   }
 
   subscribeSlash(
-    cmd: string,
-    callback: (msg: Discord.Message) => Promise<void>,
-    usage?: string,
-    info?: string,
+    command: Pick<SlashCommandBuilder, 'name' | 'toJSON'>,
+    handler: (
+      interaction: Discord.ChatInputCommandInteraction<Discord.CacheType>,
+    ) => Promise<void>,
   ) {
-    const regex = new RegExp(`\\${this.getPrefix()}${cmd}`);
-    this.commands.push([cmd, usage, info]);
-
-    this.client.on('message', (msg) => {
-      if (msg.author.bot) return;
-
-      if (regex.test(msg.content)) {
-        callback(msg);
-      }
-    });
+    this.commands.push(command);
+    this.commandHandlers[command.name] = handler;
   }
 }

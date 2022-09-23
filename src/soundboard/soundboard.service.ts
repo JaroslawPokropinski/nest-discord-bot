@@ -3,7 +3,15 @@ import { DiscordService } from 'src/discord/discord.service';
 import * as path from 'path';
 import * as fs from 'fs';
 import { promisify } from 'util';
-import { StageChannel, VoiceChannel, Interaction } from 'discord.js';
+import {
+  StageChannel,
+  VoiceChannel,
+  SlashCommandBuilder,
+  SlashCommandStringOption,
+  GuildMember,
+  ChatInputCommandInteraction,
+  CacheType,
+} from 'discord.js';
 import {
   createAudioPlayer,
   createAudioResource,
@@ -15,67 +23,55 @@ const fsAccess = promisify(fs.access);
 @Injectable()
 export class SoundboardService {
   constructor(private readonly discordService: DiscordService) {
-    const p = discordService.getPrefix();
-    const cname = 'sound';
-    const soundboardRegex = new RegExp(`\\${p}${cname} ([a-zA-Z0-9]*)`);
+    this.regiserCommand();
+  }
 
-    discordService.subscribe(cname, async (msg) => {
-      if (!msg.guild) return;
-      const m = soundboardRegex.exec(msg.content);
-      if (m) {
-        if (!m[0]) {
-          msg.reply('You need to name a sound!');
-          return;
-        }
-
-        if (msg.member.voice.channel) {
-          const soundName = m[1];
-          this.playSound(soundName, msg.member.voice.channel)
-            .then(() => null)
-            .catch((e: Error) => msg.reply(e.message));
-        } else {
-          msg.reply('You need to join a voice channel first!');
-        }
-      }
-    });
-    discordService.client.once('ready', async () => {
-      const client = discordService.client as any;
-      const slashGuilds: Array<string> = JSON.parse(process.env.GUILD_IDS);
-      const data = {
-        name: 'sound',
-        description: 'Plays selected sound',
-        options: [
-          {
-            name: 'sound_name',
-            description: 'Name of the sound to play',
-            required: true,
-            type: 3,
-            choices: (await this.getSounds()).map((name) => ({
+  async regiserCommand() {
+    const command = new SlashCommandBuilder()
+      .setName('sound')
+      .setDescription('Plays selected sound')
+      .addStringOption(
+        new SlashCommandStringOption()
+          .setName('name')
+          .setDescription('Name of the sound to play')
+          .setRequired(true)
+          .addChoices(
+            ...(await this.getSounds()).map((name) => ({
               name,
               value: name,
             })),
-          },
-        ],
-      };
-      slashGuilds.forEach((gid) =>
-        discordService.client.guilds.cache.get(gid)?.commands.create(data),
+          ),
       );
-      client.on('interaction', async (interaction: Interaction) => {
-        if (!interaction.isCommand()) return;
-        if (interaction.commandName === 'sound') {
-          const soundName = interaction.options?.[0].value.toString();
 
-          const voice = interaction.command.guild.members.cache.get(
-            interaction.member.user.id,
-          )?.voice;
+    const onCommand = async (
+      interaction: ChatInputCommandInteraction<CacheType>,
+    ) => {
+      const soundName = interaction.options.getString('name') ?? '';
+      const voice = (interaction.member as GuildMember).voice;
 
-          if (voice == null) return;
-          this.playSound(soundName, voice.channel);
+      if (voice?.channel == null) {
+        await interaction.reply({
+          content: 'Oh nio! you need to join a voice channew fiwst.',
+          ephemeral: true,
+        });
+        return;
+      }
 
-          await interaction.reply({ content: 'Done', ephemeral: true });
-        }
-      });
-    });
+      this.playSound(soundName, voice.channel)
+        .then(
+          async () =>
+            await interaction.reply({ content: 'Done', ephemeral: true }),
+        )
+        .catch(
+          async (err: Error) =>
+            await interaction.reply({
+              content: err.message,
+              ephemeral: true,
+            }),
+        );
+    };
+
+    this.discordService.subscribeSlash(command, onCommand);
   }
 
   async getSounds(): Promise<string[]> {
@@ -97,13 +93,18 @@ export class SoundboardService {
       });
 
       const player = createAudioPlayer();
-      const resource = createAudioResource(`./bin/${soundName}.mp3`, {});
+      const resource = createAudioResource(`./bin/${soundName}.mp3`, {
+        inlineVolume: true,
+      });
       const dispatcher = connection.subscribe(player);
 
       player.on('error', (err) => {
         console.log('Something went wrong :(. Error: ' + err);
         player.stop();
       });
+
+      resource.volume?.setVolume(0.2);
+      player.play(resource);
     } catch (error) {
       console.error(error);
       throw new Error("I can't make this sound UwU");

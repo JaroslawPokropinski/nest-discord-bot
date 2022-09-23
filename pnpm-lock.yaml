@@ -11,7 +11,7 @@ specifiers:
   '@nestjs/platform-express': ^9.0.11
   '@nestjs/schematics': ^9.0.3
   '@nestjs/testing': ^9.0.11
-  '@types/express': ^4.17.14
+  '@types/express': ^4.17.8
   '@types/jest': 29.0.3
   '@types/node': ^18.7.18
   '@types/request': ^2.48.8
@@ -20,6 +20,7 @@ specifiers:
   '@typescript-eslint/parser': ^5.37.0
   discord-api-types: ^0.37.10
   discord.js: ^14.3.0
+  distube: ^4.0.4
   dotenv: ^16.0.2
   eslint: ^8.23.1
   eslint-config-prettier: ^8.5.0
@@ -53,6 +54,7 @@ dependencies:
   '@nestjs/platform-express': 9.0.11_khr6mt6ojlxbw7bo55fknouh34
   '@types/request': 2.48.8
   discord.js: 14.3.0
+  distube: 4.0.4_wrqp5zugk3sjabdwgdib5fdene
   dotenv: 16.0.2
   ffmpeg-static: 5.1.0
   libsodium-wrappers: 0.7.10
@@ -650,6 +652,29 @@ packages:
       - node-opus
       - opusscript
       - utf-8-validate
+    dev: false
+
+  /@distube/ytdl-core/4.11.5:
+    resolution: {integrity: sha512-zmsR2khWOzdnYm7FoDlaYDevcFM6Mt1Y+V/zDmCYsFUcQJw+9NZ+tKH4sKsNuI/lJrSoTGT5VMso+aftXCqj6A==}
+    engines: {node: '>=12'}
+    dependencies:
+      m3u8stream: 0.8.6
+      miniget: 4.2.2
+      sax: 1.2.4
+    dev: false
+
+  /@distube/ytpl/1.1.1:
+    resolution: {integrity: sha512-/2I7GpdCv9SFdA4UprDGkq1y4ZkoAA1WYTZNmx/DjzZ0oVCLfxY9ZdYNQY5YwQqs4D4vNbXPvf6CliiWo5D3QA==}
+    engines: {node: '>=8'}
+    dependencies:
+      miniget: 4.2.2
+    dev: false
+
+  /@distube/ytsr/1.1.9:
+    resolution: {integrity: sha512-rFSQo9wQ51mfJcazik5xzQcQpnUEZhaDA9W/5F/4s6I+1FNEjLEwkS5fFhf5qgg2G69EYy0kzcnivKiPwRF+4A==}
+    engines: {node: '>=8'}
+    dependencies:
+      miniget: 4.2.2
     dev: false
 
   /@eslint/eslintrc/1.3.2:
@@ -2905,6 +2930,33 @@ packages:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+    dev: false
+
+  /distube/4.0.4_wrqp5zugk3sjabdwgdib5fdene:
+    resolution: {integrity: sha512-Y/CePsz7pVeOXR6H40L+oHCERlMFO4eZYjrzQcGYrC0m+dTgp5OGseCUmwyWX1bjdSZdFHn4WMZ9yXvt1vJgjA==}
+    engines: {node: '>=16.9.0'}
+    peerDependencies:
+      '@discordjs/opus': '*'
+      '@discordjs/voice': '*'
+      discord.js: '14'
+    peerDependenciesMeta:
+      '@discordjs/opus':
+        optional: true
+    dependencies:
+      '@discordjs/opus': 0.8.0
+      '@discordjs/voice': 0.11.0_jxsryrnbb4hrccrd5nqcvpcadi
+      '@distube/ytdl-core': 4.11.5
+      '@distube/ytpl': 1.1.1
+      '@distube/ytsr': 1.1.9
+      discord.js: 14.3.0
+      prism-media: '@codeload.github.com/distubejs/prism-media/tar.gz/main#workaround.tar.gz_jxsryrnbb4hrccrd5nqcvpcadi'
+      tiny-typed-emitter: 2.1.0
+      tslib: 2.4.0
+      undici: 5.10.0
+    transitivePeerDependencies:
+      - ffmpeg-static
+      - node-opus
+      - opusscript
     dev: false
 
   /doctrine/2.1.0:
@@ -7271,6 +7323,10 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: true
 
+  /tiny-typed-emitter/2.1.0:
+    resolution: {integrity: sha512-qVtvMxeXbVej0cQWKqVSSAHmKZEHAvxdF8HEUBFWts8h+xEo5m/lEiPakuyZ3BnCBjOD8i24kzNOiOLLgsSxhA==}
+    dev: false
+
   /tmp/0.0.33:
     resolution: {integrity: sha512-jRCJlojKnZ3addtTOjdIqoRuPEKBvNXcGYqzO6zWZX8KfKEpnGY5jfggJQ3EjKuu8D4bJRr0y+cYJFmYbImXGw==}
     engines: {node: '>=0.6.0'}
@@ -8026,4 +8082,28 @@ packages:
       m3u8stream: 0.8.6
       miniget: 4.2.2
       sax: 1.2.4
+    dev: false
+
+  '@codeload.github.com/distubejs/prism-media/tar.gz/main#workaround.tar.gz_jxsryrnbb4hrccrd5nqcvpcadi':
+    resolution: {tarball: https://codeload.github.com/distubejs/prism-media/tar.gz/main#workaround.tar.gz}
+    id: '@codeload.github.com/distubejs/prism-media/tar.gz/main#workaround.tar.gz'
+    name: prism-media
+    version: 1.3.3
+    peerDependencies:
+      '@discordjs/opus': '*'
+      ffmpeg-static: ^4.2.7 || ^3.0.0 || ^2.4.0
+      node-opus: ^0.3.3
+      opusscript: ^0.0.8
+    peerDependenciesMeta:
+      '@discordjs/opus':
+        optional: true
+      ffmpeg-static:
+        optional: true
+      node-opus:
+        optional: true
+      opusscript:
+        optional: true
+    dependencies:
+      '@discordjs/opus': 0.8.0
+      ffmpeg-static: 5.1.0
     dev: false

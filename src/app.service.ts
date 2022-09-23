@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Message } from 'discord.js';
 import { DiscordService } from './discord/discord.service';
 
 @Injectable()
@@ -6,11 +7,11 @@ export class AppService {
   constructor(discordService: DiscordService) {
     const client = discordService.getClient();
 
-    client.on('message', msg => {
+    client.on('message', (msg: Message) => {
       if (msg.content === 'ping') {
         msg.reply('pong');
       }
-      // if (msg.author.tag == 'E16HT#8308') {}
+
       const animeRegex = /.*anime.*/gi;
       const noAnimeRegex = /.*no( |_)anime.*/gi;
       if (!msg.author.bot && animeRegex.exec(msg.content)) {
@@ -24,7 +25,7 @@ export class AppService {
       if (!msg.author.bot && msg.content.match(/^.*scp-173.*$/gi)) {
         msg
           .delete()
-          .then(msg => {
+          .then((msg) => {
             const newMsg =
               `Redacted message of ${msg.author}:\n` +
               `\`\`\`${msg.content.replace(redactedRegex, '[REDACTED]')}\`\`\``;
