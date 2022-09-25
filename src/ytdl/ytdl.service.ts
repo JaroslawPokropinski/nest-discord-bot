@@ -38,6 +38,7 @@ export class YtdlService {
     this.addPlayCommand();
     this.addStopCommand();
     this.addSkipCommand();
+    this.addLeaveCommand();
   }
 
   addPlayCommand() {
