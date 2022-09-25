@@ -102,4 +102,20 @@ export class YtdlService {
     };
     this.discordService.subscribeSlash(command, onCommand);
   }
+
+  addLeaveCommand() {
+    const command = new SlashCommandBuilder()
+      .setName('leave')
+      .setDescription('Leave the voice channel');
+
+    const onCommand = async (
+      interaction: ChatInputCommandInteraction<CacheType>,
+    ) => {
+      if (interaction.guildId) {
+        this.distube.voices.get(interaction.guildId)?.leave();
+      }
+    };
+
+    this.discordService.subscribeSlash(command, onCommand);
+  }
 }
