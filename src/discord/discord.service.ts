@@ -21,6 +21,8 @@ export class DiscordService {
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.GuildVoiceStates,
+      GatewayIntentBits.MessageContent,
+      GatewayIntentBits.GuildMessageReactions,
     ],
     presence: {
       activities: [

@@ -6,6 +6,7 @@ import { DiscordModule } from './discord/discord.module';
 import { SoundboardModule } from './soundboard/soundboard.module';
 import { YtdlModule } from './ytdl/ytdl.module';
 import { WebConsoleModule } from './web-console/web-console.module';
+import { ShinigamiService } from './shinigami/shinigami.service';
 
 @Module({
   imports: [
@@ -16,6 +17,6 @@ import { WebConsoleModule } from './web-console/web-console.module';
     WebConsoleModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, ShinigamiService],
 })
 export class AppModule {}
